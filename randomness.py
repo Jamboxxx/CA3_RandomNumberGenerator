@@ -2,8 +2,12 @@
 
 import argparse
 import hashlib
+import math
 import os
 import time
+
+
+THRESHOLD = 0.01
 
 
 def collect_timing(samples):
@@ -33,6 +37,53 @@ def generate_bytes(size, samples=256):
     return hashlib.shake_256(seed).digest(size)
 
 
+def check_randomness(data):
+    """Check bit frequency, runs, and entropy."""
+    if len(data) < 128:
+        raise ValueError("Use at least 128 bytes for the checks.")
+
+    bits = "".join(f"{byte:08b}" for byte in data)
+    n = len(bits)
+    ones = bits.count("1")
+    proportion = ones / n
+
+    # Frequency and runs formulas: NIST SP 800-22, sections 2.1 and 2.3.
+    frequency_p = math.erfc(abs(2 * ones - n) / math.sqrt(2 * n))
+    runs = 1
+    longest = 0
+    current = 0
+    for index, bit in enumerate(bits):
+        if index > 0 and bit != bits[index - 1]:
+            runs += 1
+        if bit == "1":
+            current += 1
+            longest = max(longest, current)
+        else:
+            current = 0
+
+    expected = 2 * n * proportion * (1 - proportion)
+    denominator = 2 * math.sqrt(2 * n) * proportion * (1 - proportion)
+    runs_p = math.erfc(abs(runs - expected) / denominator)
+
+    entropy = -(
+        proportion * math.log2(proportion)
+        + (1 - proportion) * math.log2(1 - proportion)
+    )
+
+    passed = frequency_p >= THRESHOLD and runs_p >= THRESHOLD
+
+    return {
+        "bytes": len(data),
+        "ones_percent": proportion * 100,
+        "frequency_p": frequency_p,
+        "runs": runs,
+        "runs_p": runs_p,
+        "bit_entropy": entropy,
+        "longest_ones": longest,
+        "passed": passed,
+    }
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Simple randomness experiment")
     parser.add_argument("--bytes", type=int, default=4096, help="128 to 1048576")
@@ -40,7 +91,16 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     data = generate_bytes(args.bytes, args.samples)
-    print(f"Bytes: {len(data)}")
+    result = check_randomness(data)
+
+    print(f"Bytes: {result['bytes']}")
+    print(f"Ones: {result['ones_percent']:.3f}%")
+    print(f"Frequency p-value: {result['frequency_p']:.6f}")
+    print(f"Runs: {result['runs']}")
+    print(f"Runs p-value: {result['runs_p']:.6f}")
+    print(f"Bit-frequency entropy: {result['bit_entropy']:.6f} bits/bit")
+    print(f"Longest run of ones: {result['longest_ones']}")
+    print("Checks:", "PASS" if result["passed"] else "FAIL")
     print("Preview (first 32 bytes):", data[:32].hex())
     return 0
 
