@@ -61,16 +61,19 @@ def check_randomness(data):
         else:
             current = 0
 
-    expected = 2 * n * proportion * (1 - proportion)
-    denominator = 2 * math.sqrt(2 * n) * proportion * (1 - proportion)
-    runs_p = math.erfc(abs(runs - expected) / denominator)
+    runs_p = 0.0
+    runs_applicable = abs(proportion - 0.5) < 2 / math.sqrt(n)
+    if runs_applicable:
+        expected = 2 * n * proportion * (1 - proportion)
+        denominator = 2 * math.sqrt(2 * n) * proportion * (1 - proportion)
+        runs_p = math.erfc(abs(runs - expected) / denominator)
 
-    entropy = -(
-        proportion * math.log2(proportion)
-        + (1 - proportion) * math.log2(1 - proportion)
-    )
+    entropy = 0.0
+    for probability in (proportion, 1 - proportion):
+        if probability > 0:
+            entropy -= probability * math.log2(probability)
 
-    passed = frequency_p >= THRESHOLD and runs_p >= THRESHOLD
+    passed = frequency_p >= THRESHOLD and runs_applicable and runs_p >= THRESHOLD
 
     return {
         "bytes": len(data),
@@ -78,6 +81,7 @@ def check_randomness(data):
         "frequency_p": frequency_p,
         "runs": runs,
         "runs_p": runs_p,
+        "runs_applicable": runs_applicable,
         "bit_entropy": entropy,
         "longest_ones": longest,
         "passed": passed,
@@ -98,6 +102,8 @@ def main(argv=None):
     print(f"Frequency p-value: {result['frequency_p']:.6f}")
     print(f"Runs: {result['runs']}")
     print(f"Runs p-value: {result['runs_p']:.6f}")
+    if not result["runs_applicable"]:
+        print("Runs prerequisite failed: bit balance is too uneven.")
     print(f"Bit-frequency entropy: {result['bit_entropy']:.6f} bits/bit")
     print(f"Longest run of ones: {result['longest_ones']}")
     print("Checks:", "PASS" if result["passed"] else "FAIL")
