@@ -37,8 +37,27 @@ def generate_bytes(size, samples=256):
     return hashlib.shake_256(seed).digest(size)
 
 
+def block_balance(bits):
+    """Check balance in 16 sections."""
+    block_size = len(bits) // 16
+    statistic = 0.0
+    for index in range(16):
+        block = bits[index * block_size:(index + 1) * block_size]
+        difference = block.count("1") - len(block) / 2
+        statistic += 4 * difference ** 2 / len(block)
+
+    # Chi-square survival probability for 16 degrees of freedom.
+    # This finite sum avoids needing scipy for this fixed block count.
+    x = statistic / 2
+    term = total = 1.0
+    for k in range(1, 8):
+        term *= x / k
+        total += term
+    return math.exp(-x) * total
+
+
 def check_randomness(data):
-    """Check bit frequency, runs, and entropy."""
+    """Check balance, runs, and local bias."""
     if len(data) < 128:
         raise ValueError("Use at least 128 bytes for the checks.")
 
@@ -73,7 +92,13 @@ def check_randomness(data):
         if probability > 0:
             entropy -= probability * math.log2(probability)
 
-    passed = frequency_p >= THRESHOLD and runs_applicable and runs_p >= THRESHOLD
+    block_p = block_balance(bits)
+    passed = (
+        frequency_p >= THRESHOLD
+        and runs_applicable
+        and runs_p >= THRESHOLD
+        and block_p >= THRESHOLD
+    )
 
     return {
         "bytes": len(data),
@@ -84,6 +109,7 @@ def check_randomness(data):
         "runs_applicable": runs_applicable,
         "bit_entropy": entropy,
         "longest_ones": longest,
+        "block_p": block_p,
         "passed": passed,
     }
 
@@ -104,6 +130,7 @@ def main(argv=None):
     print(f"Runs p-value: {result['runs_p']:.6f}")
     if not result["runs_applicable"]:
         print("Runs prerequisite failed: bit balance is too uneven.")
+    print(f"Block balance p-value: {result['block_p']:.6f}")
     print(f"Bit-frequency entropy: {result['bit_entropy']:.6f} bits/bit")
     print(f"Longest run of ones: {result['longest_ones']}")
     print("Checks:", "PASS" if result["passed"] else "FAIL")
