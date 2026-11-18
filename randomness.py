@@ -38,11 +38,10 @@ def generate_bytes(size, samples=256):
 
 
 def block_balance(bits):
-    """Check balance in 16 sections."""
-    block_size = len(bits) // 16
+    """Check balance in 16 sections, including every bit."""
     statistic = 0.0
     for index in range(16):
-        block = bits[index * block_size:(index + 1) * block_size]
+        block = bits[index * len(bits) // 16:(index + 1) * len(bits) // 16]
         difference = block.count("1") - len(block) / 2
         statistic += 4 * difference ** 2 / len(block)
 
