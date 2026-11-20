@@ -7,7 +7,9 @@ import os
 import time
 
 
-THRESHOLD = 0.01
+# Share a 1% significance budget between four statistical checks.
+THRESHOLD = 0.01 / 4
+LAGS = (1, 2, 3, 4, 8, 16, 32, 64)
 
 
 def collect_timing(samples):
@@ -55,8 +57,23 @@ def block_balance(bits):
     return math.exp(-x) * total
 
 
+def lag_balance(bits):
+    """Look for matching or opposite bits at several distances."""
+    smallest_p = 1.0
+    worst_lag = LAGS[0]
+    for lag in LAGS:
+        pairs = len(bits) - lag
+        different = sum(a != b for a, b in zip(bits, bits[lag:]))
+        p_value = math.erfc(abs(2 * different - pairs) / math.sqrt(2 * pairs))
+        if p_value < smallest_p:
+            smallest_p = p_value
+            worst_lag = lag
+    # Bonferroni adjustment for inspecting eight distances.
+    return min(1.0, smallest_p * len(LAGS)), worst_lag
+
+
 def check_randomness(data):
-    """Check balance, runs, and local bias."""
+    """Check balance, runs, local bias, and correlations."""
     if len(data) < 128:
         raise ValueError("Use at least 128 bytes for the checks.")
 
@@ -92,11 +109,13 @@ def check_randomness(data):
             entropy -= probability * math.log2(probability)
 
     block_p = block_balance(bits)
+    lag_p, worst_lag = lag_balance(bits)
     passed = (
         frequency_p >= THRESHOLD
         and runs_applicable
         and runs_p >= THRESHOLD
         and block_p >= THRESHOLD
+        and lag_p >= THRESHOLD
     )
 
     return {
@@ -109,6 +128,8 @@ def check_randomness(data):
         "bit_entropy": entropy,
         "longest_ones": longest,
         "block_p": block_p,
+        "lag_p": lag_p,
+        "worst_lag": worst_lag,
         "passed": passed,
     }
 
@@ -130,6 +151,9 @@ def main(argv=None):
     if not result["runs_applicable"]:
         print("Runs prerequisite failed: bit balance is too uneven.")
     print(f"Block balance p-value: {result['block_p']:.6f}")
+    print(f"Lag balance p-value (adjusted): {result['lag_p']:.6f}")
+    print(f"Strongest lag: {result['worst_lag']} bits")
+    print(f"Statistical threshold: {THRESHOLD}")
     print(f"Bit-frequency entropy: {result['bit_entropy']:.6f} bits/bit")
     print(f"Longest run of ones: {result['longest_ones']}")
     print("Checks:", "PASS" if result["passed"] else "FAIL")
