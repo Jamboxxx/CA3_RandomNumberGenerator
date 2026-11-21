@@ -72,8 +72,16 @@ def lag_balance(bits):
     return min(1.0, smallest_p * len(LAGS)), worst_lag
 
 
+def repeated_period(data):
+    """Find an exact byte period up to 256 bytes, with at least four cycles."""
+    for period in range(1, min(256, len(data) // 4) + 1):
+        if data[period:] == data[:-period]:
+            return period
+    return 0
+
+
 def check_randomness(data):
-    """Check balance, runs, local bias, and correlations."""
+    """Check balance, runs, local bias, correlations and exact repetition."""
     if len(data) < 128:
         raise ValueError("Use at least 128 bytes for the checks.")
 
@@ -110,13 +118,15 @@ def check_randomness(data):
 
     block_p = block_balance(bits)
     lag_p, worst_lag = lag_balance(bits)
-    passed = (
-        frequency_p >= THRESHOLD
-        and runs_applicable
-        and runs_p >= THRESHOLD
-        and block_p >= THRESHOLD
-        and lag_p >= THRESHOLD
-    )
+    period = repeated_period(data)
+    checks = {
+        "frequency": frequency_p >= THRESHOLD,
+        "runs": runs_applicable and runs_p >= THRESHOLD,
+        "block balance": block_p >= THRESHOLD,
+        "lag balance": lag_p >= THRESHOLD,
+        "repetition": period == 0,
+    }
+    failed_checks = ", ".join(name for name, passed in checks.items() if not passed)
 
     return {
         "bytes": len(data),
@@ -130,7 +140,9 @@ def check_randomness(data):
         "block_p": block_p,
         "lag_p": lag_p,
         "worst_lag": worst_lag,
-        "passed": passed,
+        "repeat_period_bytes": period,
+        "failed_checks": failed_checks,
+        "passed": all(checks.values()),
     }
 
 
@@ -153,10 +165,13 @@ def main(argv=None):
     print(f"Block balance p-value: {result['block_p']:.6f}")
     print(f"Lag balance p-value (adjusted): {result['lag_p']:.6f}")
     print(f"Strongest lag: {result['worst_lag']} bits")
+    print(f"Exact repeat period: {result['repeat_period_bytes']} bytes (0 = none)")
     print(f"Statistical threshold: {THRESHOLD}")
     print(f"Bit-frequency entropy: {result['bit_entropy']:.6f} bits/bit")
     print(f"Longest run of ones: {result['longest_ones']}")
     print("Checks:", "PASS" if result["passed"] else "FAIL")
+    if not result["passed"]:
+        print("Failed checks:", result["failed_checks"])
     print("Preview (first 32 bytes):", data[:32].hex())
     return 0
 
