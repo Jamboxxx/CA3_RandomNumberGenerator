@@ -20,6 +20,9 @@ def collect_timing(samples):
         sum(i * i for i in range(100))
         timings.append(time.perf_counter_ns() - start)
 
+    if len(set(timings)) < 2:
+        raise ValueError("Timing samples did not change. Generation stopped.")
+
     noise = bytearray()
     for value in timings:
         noise.extend(value.to_bytes(8, "big"))
@@ -150,30 +153,44 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Simple randomness experiment")
     parser.add_argument("--bytes", type=int, default=4096, help="128 to 1048576")
     parser.add_argument("--samples", type=int, default=256, help="32 to 4096")
+    parser.add_argument("--output", help="Save accepted bytes to a new binary file")
     args = parser.parse_args(argv)
 
-    data = generate_bytes(args.bytes, args.samples)
-    result = check_randomness(data)
+    try:
+        data = generate_bytes(args.bytes, args.samples)
+        result = check_randomness(data)
 
-    print(f"Bytes: {result['bytes']}")
-    print(f"Ones: {result['ones_percent']:.3f}%")
-    print(f"Frequency p-value: {result['frequency_p']:.6f}")
-    print(f"Runs: {result['runs']}")
-    print(f"Runs p-value: {result['runs_p']:.6f}")
-    if not result["runs_applicable"]:
-        print("Runs prerequisite failed: bit balance is too uneven.")
-    print(f"Block balance p-value: {result['block_p']:.6f}")
-    print(f"Lag balance p-value (adjusted): {result['lag_p']:.6f}")
-    print(f"Strongest lag: {result['worst_lag']} bits")
-    print(f"Exact repeat period: {result['repeat_period_bytes']} bytes (0 = none)")
-    print(f"Statistical threshold: {THRESHOLD}")
-    print(f"Bit-frequency entropy: {result['bit_entropy']:.6f} bits/bit")
-    print(f"Longest run of ones: {result['longest_ones']}")
-    print("Checks:", "PASS" if result["passed"] else "FAIL")
-    if not result["passed"]:
-        print("Failed checks:", result["failed_checks"])
-    print("Preview (first 32 bytes):", data[:32].hex())
-    return 0
+        print(f"Bytes: {result['bytes']}")
+        print(f"Ones: {result['ones_percent']:.3f}%")
+        print(f"Frequency p-value: {result['frequency_p']:.6f}")
+        print(f"Runs: {result['runs']}")
+        print(f"Runs p-value: {result['runs_p']:.6f}")
+        if not result["runs_applicable"]:
+            print("Runs prerequisite failed: bit balance is too uneven.")
+        print(f"Block balance p-value: {result['block_p']:.6f}")
+        print(f"Lag balance p-value (adjusted): {result['lag_p']:.6f}")
+        print(f"Strongest lag: {result['worst_lag']} bits")
+        print(f"Exact repeat period: {result['repeat_period_bytes']} bytes (0 = none)")
+        print(f"Statistical threshold: {THRESHOLD}")
+        print(f"Bit-frequency entropy: {result['bit_entropy']:.6f} bits/bit")
+        print(f"Longest run of ones: {result['longest_ones']}")
+        print("Checks:", "PASS" if result["passed"] else "FAIL")
+
+        if not result["passed"]:
+            print("Failed checks:", result["failed_checks"])
+            print("Checks failed. No bytes displayed or saved; no automatic retry.")
+            return 1
+
+        print("Preview (first 32 bytes):", data[:32].hex())
+        if args.output:
+            # 'xb' refuses to overwrite an existing file.
+            with open(args.output, "xb") as output:
+                output.write(data)
+            print("Saved:", args.output)
+        return 0
+    except (OSError, ValueError) as error:
+        print("Error:", error)
+        return 1
 
 
 if __name__ == "__main__":
