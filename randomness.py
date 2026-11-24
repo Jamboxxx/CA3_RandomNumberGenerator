@@ -1,4 +1,4 @@
-"""Small randomness experiment for CA2."""
+"""A small randomness experiment for the CA2 project. Not for real keys."""
 
 import argparse
 import hashlib
@@ -36,6 +36,7 @@ def generate_bytes(size, samples=256):
     if not 32 <= samples <= 4096:
         raise ValueError("Sample count must be between 32 and 4096.")
 
+    # Timing is extra input. The OS remains the trusted randomness source.
     system_random = os.urandom(64)
     noise = collect_timing(samples)
     seed = hashlib.sha3_512(system_random + noise).digest()
@@ -157,8 +158,10 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     try:
+        start = time.perf_counter()
         data = generate_bytes(args.bytes, args.samples)
         result = check_randomness(data)
+        elapsed = time.perf_counter() - start
 
         print(f"Bytes: {result['bytes']}")
         print(f"Ones: {result['ones_percent']:.3f}%")
@@ -174,6 +177,7 @@ def main(argv=None):
         print(f"Statistical threshold: {THRESHOLD}")
         print(f"Bit-frequency entropy: {result['bit_entropy']:.6f} bits/bit")
         print(f"Longest run of ones: {result['longest_ones']}")
+        print(f"Time: {elapsed:.4f} seconds")
         print("Checks:", "PASS" if result["passed"] else "FAIL")
 
         if not result["passed"]:
