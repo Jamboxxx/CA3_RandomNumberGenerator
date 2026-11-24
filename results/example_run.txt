@@ -1,0 +1,15 @@
+Bytes: 4096
+Ones: 50.421%
+Frequency p-value: 0.127334
+Runs: 16351
+Runs p-value: 0.725000
+Block balance p-value: 0.089761
+Lag balance p-value (adjusted): 1.000000
+Strongest lag: 64 bits
+Exact repeat period: 0 bytes (0 = none)
+Statistical threshold: 0.0025
+Bit-frequency entropy: 0.999949 bits/bit
+Longest run of ones: 15
+Time: 0.0517 seconds
+Checks: PASS
+Preview (first 32 bytes): 277b9c23192f1468f51101d641c5cfef14c43a926db0f15d661cd0f93d14cc8d

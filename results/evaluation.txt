@@ -1,0 +1,17 @@
+Python 3.12.14
+Linux-6.8.0-151-generic-x86_64-with-glibc2.39
+generator, 1024 bytes: 29/30 passed; mean 0.015269 s
+generator, 4096 bytes: 30/30 passed; mean 0.049230 s
+generator, 16384 bytes: 30/30 passed; mean 0.158607 s
+OS baseline, 1024 bytes: 29/30 passed; mean 0.012242 s
+OS baseline, 4096 bytes: 30/30 passed; mean 0.045151 s
+OS baseline, 16384 bytes: 30/30 passed; mean 0.160759 s
+all zeros: FAIL frequency, runs, block balance, lag balance, repetition
+all ones: FAIL frequency, runs, block balance, lag balance, repetition
+alternating bits: FAIL runs, lag balance, repetition
+repeated 0011: FAIL lag balance, repetition
+cycling byte values: FAIL lag balance, repetition
+biased halves: FAIL runs, block balance, lag balance
+repeated 64-byte block: FAIL frequency, runs, lag balance, repetition
+known seed SHAKE: PASS 
+Saved all 188 rows to results/evaluation.csv

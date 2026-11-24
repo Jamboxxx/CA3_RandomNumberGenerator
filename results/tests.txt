@@ -1,0 +1,20 @@
+test_alternating_bits_fail_runs (test_randomness.RandomnessTests.test_alternating_bits_fail_runs) ... ok
+test_block_probability_reference (test_randomness.RandomnessTests.test_block_probability_reference) ... ok
+test_byte_cycle_and_partial_period (test_randomness.RandomnessTests.test_byte_cycle_and_partial_period) ... ok
+test_cli_rejects_invalid_input (test_randomness.RandomnessTests.test_cli_rejects_invalid_input) ... ok
+test_constant_clock_stops_collection (test_randomness.RandomnessTests.test_constant_clock_stops_collection) ... ok
+test_failed_checks_do_not_save_or_preview (test_randomness.RandomnessTests.test_failed_checks_do_not_save_or_preview) ... ok
+test_known_seed_can_still_pass (test_randomness.RandomnessTests.test_known_seed_can_still_pass) ... ok
+test_lag_detects_opposite_bits (test_randomness.RandomnessTests.test_lag_detects_opposite_bits) ... ok
+test_local_bias_with_global_balance (test_randomness.RandomnessTests.test_local_bias_with_global_balance) ... ok
+test_os_failure_has_no_fallback (test_randomness.RandomnessTests.test_os_failure_has_no_fallback) ... ok
+test_repeated_0011_is_rejected (test_randomness.RandomnessTests.test_repeated_0011_is_rejected) ... ok
+test_repeated_pattern_not_saved (test_randomness.RandomnessTests.test_repeated_pattern_not_saved) ... ok
+test_save_and_refuse_overwrite (test_randomness.RandomnessTests.test_save_and_refuse_overwrite) ... ok
+test_sizes_and_limits (test_randomness.RandomnessTests.test_sizes_and_limits) ... ok
+test_zero_bytes_fail (test_randomness.RandomnessTests.test_zero_bytes_fail) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 0.244s
+
+OK
